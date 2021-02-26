@@ -22,7 +22,7 @@ def preprocess_image(image_path,resize=False):
         img = cv2.resize(img, (224,224))
     return img
 
-LpImg = preprocess_image("PlateExamples/1.jpg")
+LpImg = preprocess_image("PlateExamples/13.jpg")
 #LpImg = preprocess_image("PlateExamples/2.jpg")
 #LpImg = preprocess_image("PlateExamples/3.jpg")
 #LpImg = preprocess_image("PlateExamples/4.jpg")
