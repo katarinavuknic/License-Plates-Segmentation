@@ -1,7 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# required library
+# potrebne biblioteke
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,32 +22,47 @@ def preprocess_image(image_path,resize=False):
         img = cv2.resize(img, (224,224))
     return img
 
-LpImg = preprocess_image("PlateExamples/13.jpg")
+#ucitavanje slike tablice nad kojom ce se izvrsiti segmentacija
+LpImg = preprocess_image("PlateExamples/15.png")
 #LpImg = preprocess_image("PlateExamples/2.jpg")
 #LpImg = preprocess_image("PlateExamples/3.jpg")
 #LpImg = preprocess_image("PlateExamples/4.jpg")
 #LpImg = preprocess_image("PlateExamples/5.jpg")
 #LpImg = preprocess_image("PlateExamples/6.jpg")
 #LpImg = preprocess_image("PlateExamples/7.jpg")
+#LpImg = preprocess_image("PlateExamples/8.jpg")
+#LpImg = preprocess_image("PlateExamples/9.png")
+#LpImg = preprocess_image("PlateExamples/10.png")
+#LpImg = preprocess_image("PlateExamples/11.png")
+#LpImg = preprocess_image("PlateExamples/12.jpg")
+#LpImg = preprocess_image("PlateExamples/13.jpg")
+#LpImg = preprocess_image("PlateExamples/15.png")
+
 
 fig = plt.figure(figsize=(12,6))
 plt.axis(False)
 plt.imshow(LpImg)
 
-# Scales, calculates absolute values, and converts the result to 8-bit.
+#skaliranje, izracun apsolutnih vrijednosti i pretvorba slike u 8-bitnu 'skalu' 
+#3 bita za crvenu, 3 bita za zelenu i 2 bita za plavu boju (rgb)
 plate_image = cv2.convertScaleAbs(LpImg, alpha=(255.0))
 
-# convert to grayscale and blur the image
+#boja nije nuzna za prepoznavanje tablice pa je uklanjamo sa slike i pretvaramo u sivu - 'grayscale'
+#tehnika zamucenja - 'blur' provodi za radi uklanjanja smetnji (buke) i nebitnih informacija
+#Gaussian blur je jedna od vrsta zamucenja, a velicina jezgre (7,7) se moze promijeniti s obzirom na sliku 
+#povecavanjem velicine jezgre smanjuje se buka, ali i gubi vise podataka
 gray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
 blur = cv2.GaussianBlur(gray,(7,7),0)
     
-# Applied inversed thresh_binary 
+#postavi se vrijednost praga tako da se svaka manja vrijednost piksela od te pretvori u 255 i obratno
+#inverzno binarno pragiranje
 ret,binary = cv2.threshold(blur, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     
+#tehnika prosirenja bijelog podrucja slike - za poboljsanje bijele konture slike
 kernel3 = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
 thre_mor = cv2.morphologyEx(binary, cv2.MORPH_DILATE, kernel3)
 
-# visualize results    
+# vizualizacija primijenjenih tehnika na pocetnu sliku    
 fig = plt.figure(figsize=(12,7))
 plt.rcParams.update({"font.size":18})
 grid = gridspec.GridSpec(ncols=2,nrows=3,figure = fig)
@@ -65,7 +80,7 @@ for i in range(len(plot_image)):
 
 # plt.savefig("threshding.png", dpi=300)
 
-# Create sort_contours() function to grab the contour of each digit from left to right
+#dohvaca i sortira utemeljene konture slijeva udesno jer ih je bitno rasporediti u ispravnom redoslijedu
 def sort_contours(cnts,reverse = False):
     i = 0
     boundingBoxes = [cv2.boundingRect(c) for c in cnts]
@@ -73,32 +88,36 @@ def sort_contours(cnts,reverse = False):
                                         key=lambda b: b[1][i], reverse=reverse))
     return cnts
 
+#funkcija za identifikaciju koordinata znaka tablice
+#teorija: kontura je krivulja koja spaja sve kontinuirane tocke koje dijele istu boju i intezitet
 cont, _  = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 # creat a copy version "test_roi" of plat_image to draw bounding box
 test_roi = plate_image.copy()
 
-# Initialize a list which will be used to append charater image
+#incijalizacija liste koja ce se koristiti za dodavanje slike znakova
 crop_characters = []
 
-# define standard width and height of character
-digit_w, digit_h = 30, 60
+# definirane standardna sirina i visina znaka na tablici (obicno je visina vece vrijendosti)
+digit_w, digit_h = 55, 75
 
 for c in sort_contours(cont):
     (x, y, w, h) = cv2.boundingRect(c)
-    ratio = h/w
-    if 1<=ratio<=8: # Only select contour with defined ratio
-        if 0.85>=h/plate_image.shape[0]>=0.6: # Select contour which has the height larger than 50% of the plate
-            # Draw bounding box arroung digit number
+    ratio = h/w #omjer visine i sirine
+    if 1<=ratio<=8: #gledati samo one konture kojima je visina od 1 do 8 puta sirina (filter 1)
+        if 0.85>=h/plate_image.shape[0]>=0.5: #gledati samo one konture cija je visina veca od 50% visine tablice (filter 2)
+            #nacrtati okvir oko broja znamenke ili slova
             cv2.rectangle(test_roi, (x, y), (x + w, y + h), (0, 255,0), 2)
 
-            # Sperate number and gibe prediction
+            #odvajanje znakova i predvidanje
             curr_num = thre_mor[y:y+h,x:x+w]
             curr_num = cv2.resize(curr_num, dsize=(digit_w, digit_h))
-            _, curr_num = cv2.threshold(curr_num, 220, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            crop_characters.append(curr_num)
+            _, curr_num = cv2.threshold(curr_num, 220, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU) #inverzno binarno pragiranje
+            crop_characters.append(curr_num) #dodavanje svih segmentiranih znakova u listu
 
-print("Detect {} letters...".format(len(crop_characters)))
+print("Detect {} letters...".format(len(crop_characters))) 
+
+#vizualizacija koristeci matplotlib 
 fig = plt.figure(figsize=(10,6))
 plt.axis(False)
 plt.imshow(test_roi)
@@ -114,6 +133,7 @@ for i in range(len(crop_characters)):
     plt.imshow(crop_characters[i],cmap="gray")
 #plt.savefig("segmented_leter.png",dpi=300)
 
+#ucitavaju se koristena NN arhitektura modela i tezine nakon zavrsene faze treniranja te klase oznaka
 json_file = open('MobileNets_character_recognition.json', 'r')
 loaded_model_json = json_file.read()
 json_file.close()
