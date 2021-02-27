@@ -52,7 +52,7 @@ plate_image = cv2.convertScaleAbs(LpImg, alpha=(255.0))
 #Gaussian blur je jedna od vrsta zamucenja, a velicina jezgre (7,7) se moze promijeniti s obzirom na sliku 
 #povecavanjem velicine jezgre smanjuje se buka, ali i gubi vise podataka
 gray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
-blur = cv2.GaussianBlur(gray,(7,7),0)
+blur = cv2.GaussianBlur(gray,(13,5),0)
     
 #postavi se vrijednost praga tako da se svaka manja vrijednost piksela od te pretvori u 255 i obratno
 #inverzno binarno pragiranje
@@ -103,10 +103,17 @@ digit_w, digit_h = 55, 75
 
 for c in sort_contours(cont):
     (x, y, w, h) = cv2.boundingRect(c)
+<<<<<<< HEAD
     ratio = h/w #omjer visine i sirine
     if 1<=ratio<=8: #gledati samo one konture kojima je visina od 1 do 8 puta sirina (filter 1)
         if 0.85>=h/plate_image.shape[0]>=0.5: #gledati samo one konture cija je visina veca od 50% visine tablice (filter 2)
             #nacrtati okvir oko broja znamenke ili slova
+=======
+    ratio = h/w
+    if 1<=ratio<=8: # Only select contour with defined ratio
+        if 0.85>=h/plate_image.shape[0]>=0.5: # Select contour which has the height larger than 50% of the plate
+            # Draw bounding box arroung digit number
+>>>>>>> 9b396b48dc1c0e8b3c7140b68536d9603d2d91ef
             cv2.rectangle(test_roi, (x, y), (x + w, y + h), (0, 255,0), 2)
 
             #odvajanje znakova i predvidanje
