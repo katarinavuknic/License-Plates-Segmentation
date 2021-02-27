@@ -39,7 +39,7 @@ plate_image = cv2.convertScaleAbs(LpImg, alpha=(255.0))
 
 # convert to grayscale and blur the image
 gray = cv2.cvtColor(plate_image, cv2.COLOR_BGR2GRAY)
-blur = cv2.GaussianBlur(gray,(7,7),0)
+blur = cv2.GaussianBlur(gray,(13,5),0)
     
 # Applied inversed thresh_binary 
 ret,binary = cv2.threshold(blur, 180, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -88,7 +88,7 @@ for c in sort_contours(cont):
     (x, y, w, h) = cv2.boundingRect(c)
     ratio = h/w
     if 1<=ratio<=8: # Only select contour with defined ratio
-        if 0.85>=h/plate_image.shape[0]>=0.6: # Select contour which has the height larger than 50% of the plate
+        if 0.85>=h/plate_image.shape[0]>=0.5: # Select contour which has the height larger than 50% of the plate
             # Draw bounding box arroung digit number
             cv2.rectangle(test_roi, (x, y), (x + w, y + h), (0, 255,0), 2)
 
